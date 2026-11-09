@@ -77,3 +77,36 @@ def get_lecture_summary(lecture: int) -> str:
         available = sorted(p.stem for p in (DATA_DIR / "lectures").glob("*.md"))
         return f"第{lecture}回の要点はまだありません。用意されている回: {', '.join(available)}"
     return path.read_text(encoding="utf-8")
+
+
+# 第3回 宿題（実装）: 学習の記録を保存するツール。保存先は .gitignore 済み（個人の記録なので共有しない）
+LOG_DIR = Path(__file__).resolve().parent.parent / "learning_log"
+
+
+def save_learning_log(title: str, content: str) -> str:
+    """学習の記録を learning_log/ フォルダに Markdown ファイルとして保存する。
+
+    利用者が「今日学んだことを記録して」「学習ログに保存して」のように、
+    記録の保存をはっきり頼んだときだけ使う。質問に答えるだけのときは使わない。
+    title には記録の短い見出し（例: "第3回 エージェントのツール"）、
+    content には保存する本文（学んだこと・疑問など）を入れる。
+    このツールはファイルを書き込むので、実行の前に利用者の承認が必要。
+    """
+    from datetime import datetime
+
+    title = title.strip()
+    if not title or not content.strip():
+        return "title と content の両方を指定してください。保存はしていません。"
+
+    LOG_DIR.mkdir(exist_ok=True)
+    now = datetime.now()
+    # ファイル名に使えない文字は _ にする。同じ秒に2回保存しても上書きしないよう連番を付ける
+    safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in title)[:40] or "log"
+    path = LOG_DIR / f"{now:%Y%m%d-%H%M%S}_{safe}.md"
+    n = 1
+    while path.exists():
+        n += 1
+        path = LOG_DIR / f"{now:%Y%m%d-%H%M%S}_{safe}_{n}.md"
+
+    path.write_text(f"# {title}\n\n- 日時: {now:%Y-%m-%d %H:%M}\n\n{content.strip()}\n", encoding="utf-8")
+    return f"保存しました: learning_log/{path.name}"
